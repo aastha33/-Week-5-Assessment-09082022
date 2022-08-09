@@ -1,0 +1,146 @@
+1. There is already a table named student with some data into it. We want to create a replica of that table with
+   the same data into the newly created table.
+
+   ==>Create table student_duplicate as select * from student;
+
+      This will create the student_duplicate table with the same data as that in student table.
+------------------------------------------------------------------------------------------------------------------
+2. There is already a table named student with some data into it. We want to create a replica of that table
+   without copying the data into the newly created table.
+   
+   ==>Create table student_dupli as select * from student where 1=2;
+
+      This will create the student_dupli table exactly same as the student table but this time does not copy the 
+      data into the created table because of the condition that we gave i.e. 1=2 which is equal to false.
+-------------------------------------------------------------------------------------------------------------------
+3. ##select the last 10 records from the student table
+
+   Select * from student s where index <=10
+
+   union
+
+   select * from (Select * from student s order by id desc) where index <=10;
+   
+   ##Select max salary,min salary together from employee
+
+   Select max(salary) from Employee
+
+   union
+
+   Select min(salary) from Employee;
+-------------------------------------------------------------------------------------------------------------------
+4. create table transactions (
+    trans_id int,
+    user_id int,
+    trans_date date,
+    store_id int,
+    pay_method varchar(10),
+    amount float
+    );
+    insert into transactions
+    (trans_id, user_id, trans_date, store_id, pay_method, amount) values
+    (1, 123, ‘2019–03–02’, 1, 'cash', 5.25),
+    (1, 132, ‘2019–03–01’, 1, 'credit', 10.75),
+    (1, 145, ‘2019–03–02’, 2, 'cash', 25.50),
+    (1, 176, ‘2019–03–03’, 2, 'credit', 17.00),
+    (1, 897, ‘2019–03–01’, 2, 'cash', 20.00),
+    (1, 767, ‘2019–03–02’, 2, 'debit', 30.00),
+    (1, 345, ‘2019–03–03’, 1, 'debit', 3.00);
+   
+    _BASIC_STATS_TEMPLATE = '''
+    select
+    {{ dim | sqlsafe }}
+    , count(*) as num_transactions
+    , sum(amount) as total_amount
+    , avg(amount) as avg_amount
+    from
+    transactions
+    group by
+    {{ dim | sqlsafe }}
+    order by total_amount desc
+    '''
+-------------------------------------------------------------------------------------------------------------------
+5. Select * from student where name like 'P%' and surname like 'S%;
+-------------------------------------------------------------------------------------------------------------------
+6. Select * from student where id = select max(id) from student;
+                                 or
+   select * from student order by id desc limit 1;
+-------------------------------------------------------------------------------------------------------------------
+7. CREATE TABLE Employees
+   (
+   EmpID int NOT NULL PRIMARY KEY,
+   FirstName varchar(50) NOT NULL,
+   LastName varchar(50) NOT NULL,
+   ManagerID int NULL
+  )
+
+INSERT INTO Employees VALUES (1, 'abhi', 'sharma', NULL)
+INSERT INTO Employees VALUES (2, 'raju', 'jain', 1)
+INSERT INTO Employees VALUES (3, 'payal', 'rastogi', 1)
+INSERT INTO Employees VALUES (4, 'mahima', 'sharma', 2)
+INSERT INTO Employees VALUES (5, 'karan', 'patel', 2)
+INSERT INTO Employees VALUES (6, 'deepika', 'singh', 3)
+INSERT INTO Employees VALUES (7, 'mallika', 'singh', 3)
+INSERT INTO Employees VALUES (8, 'iron', 'man', 5)
+INSERT INTO Employees VALUES (9, 'charles', 'Matthew', 6)
+INSERT INTO Employees VALUES (10, 'Michael', 'Jhonson', 6)  
+
+WITH
+  cteReports (EmployeeID, FirstName, LastName, MgrID, ELevel)
+  AS
+  (
+    SELECT EmpID, FirstName, LastName, ManagerID, 1
+    FROM Employees
+    WHERE ManagerID IS NULL
+    UNION ALL
+    SELECT e.EmpID, e.FirstName, e.LastName, e.ManagerID, 
+      c.ELevel + 1
+    FROM Employees e
+      INNER JOIN cteReports c
+        ON e.ManagerID = c.EmployeeID
+  )
+SELECT
+  FirstName + ' ' + LastName AS FullName, 
+  ELevel,
+  (SELECT FirstName + ' ' + LastName FROM Employees 
+    WHERE EmpID = cteReports.MgrID) AS Manager
+FROM cteReports 
+ORDER BY ELevel, MgrID
+-------------------------------------------------------------------------------------------------------------------
+8. ##UPDATE TRIGGER
+   CREATE TRIGGER update_trigger ON books_audit_table
+   AFTER UPDATE
+   AS
+   BEGIN
+   SET NOCOUNT ON;
+   UPDATE books_audit_table set updated_at = GETDATE()
+   from books_audit_table b
+   INNER JOIN inserted i on b.book_id=i.book_id
+   AND i.status = 'Borrowed'
+   END
+   GO
+
+##DELETE TRIGGER
+CREATE TRIGGER AfterDELETETrigger on students
+AFTER DELETE
+AS DECLARE
+@roll_no INT,
+@student_name VARCHAR(255),
+@degree_major VARCHAR(255),
+@degree_year VARCHAR(255),
+@society VARCHAR(255);
+SELECT @roll_no = d.roll_no FROM DELETED d;
+SELECT @student_name = d.student_name FROM DELETED d;
+SELECT @degree_major = d.degree_major FROM DELETED d;
+SELECT @degree_year = d.degree_year FROM DELETED d;
+SELECT @society = d.society FROM DELETED d;
+INSERT INTO students_audit(
+[roll_no] ,[student_name] ,[degree_major] ,[degree_year] ,[society] ,[Deleted_by] ,[Deleted_at])
+VALUES (@roll_no,
+@student_name,
+@degree_major,
+@degree_year,
+@society,
+CAST( SERVERPROPERTY('ServerName') AS VARCHAR(50)),
+GETDATE());
+GO
